@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VegShop — Cart & Billing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --green: #2d6a4f; --green-light: #52b788; --green-pale: #d8f3dc;
+            --amber: #e76f00; --cream: #fefae0; --brown: #4a3728;
+            --text: #1b1b1b; --muted: #6b6b6b; --white: #ffffff;
+            --card-bg: #fffef7; --border: rgba(45,106,79,0.15);
+            --danger: #e11d48; --purple: #6366f1;
+        }
+
+        body { font-family: 'DM Sans', sans-serif; background: var(--cream); min-height: 100vh; }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: radial-gradient(circle at 20% 40%, rgba(99,102,241,0.07) 0%, transparent 40%),
+                        radial-gradient(circle at 80% 60%, rgba(45,106,79,0.07) 0%, transparent 40%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .page-wrapper { max-width: 1100px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--green); font-weight: 500; text-decoration: none; font-size: 14px;
+            margin-bottom: 32px; padding: 8px 16px; border-radius: 100px;
+            background: rgba(45,106,79,0.08); transition: background 0.2s;
+        }
+        .back-link:hover { background: rgba(45,106,79,0.15); }
+
+        .page-header { margin-bottom: 36px; }
+        .page-header h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 900; color: var(--brown); }
+        .page-header p { color: var(--muted); margin-top: 8px; font-size: 15px; }
+
+        .layout { display: grid; grid-template-columns: 1fr 400px; gap: 24px; align-items: start; }
+
+        .card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 20px; overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .card-header h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+        .card-body { padding: 24px; }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        input, select {
+            width: 100%; padding: 11px 14px;
+            border: 1.5px solid var(--border); border-radius: 10px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px;
+            background: var(--white); color: var(--text);
+            outline: none; transition: border-color 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--green-light); }
+
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+            transition: all 0.2s; width: 100%; margin-top: 4px;
+        }
+        .btn-purple { background: var(--purple); color: var(--white); }
+        .btn-purple:hover { background: #4f52e0; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.3); }
+        .btn-danger { background: var(--danger); color: var(--white); }
+        .btn-danger:hover { background: #c91a40; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(225,29,72,0.3); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* Cart table */
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: rgba(45,106,79,0.04); }
+        th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+        td { padding: 12px 16px; font-size: 13px; color: var(--text); border-top: 1px solid var(--border); }
+
+        .btn-remove {
+            background: none; border: none; cursor: pointer; color: var(--danger);
+            font-size: 16px; padding: 4px 8px; border-radius: 6px;
+            transition: background 0.15s;
+        }
+        .btn-remove:hover { background: #ffeef1; }
+
+        .cart-empty { text-align: center; padding: 48px; color: var(--muted); }
+        .cart-empty .icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+
+        /* Bill summary */
+        .bill-summary { padding: 24px; border-top: 1px solid var(--border); background: rgba(45,106,79,0.03); }
+        .summary-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: var(--muted); }
+        .summary-row.total { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--border); }
+        .summary-row.total span:last-child { color: var(--green); font-family: 'Playfair Display', serif; }
+
+        .bill-success {
+            background: var(--green-pale); border: 1px solid var(--green-light);
+            border-radius: 12px; padding: 16px 20px; margin-top: 16px;
+            text-align: center; color: var(--green); font-weight: 600; font-size: 15px;
+            display: none;
+        }
+
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--green); color: var(--white);
+            padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: 500;
+            transform: translateY(80px); opacity: 0;
+            transition: all 0.3s; z-index: 999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .toast.error { background: var(--danger); }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <a href="/" class="back-link">← Back to Dashboard</a>
+
+        <div class="page-header">
+            <h1>🛒 Cart & Billing</h1>
+            <p>Add items to cart and generate customer bills</p>
+        </div>
+
+        <div class="layout">
+            <!-- Cart table -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🧺 Current Cart</h2>
+                </div>
+                <div id="cartContent">
+                    <div class="cart-empty">
+                        <span class="icon">🛒</span>
+                        Cart is empty. Add items to get started.
+                    </div>
+                </div>
+                <div class="bill-summary" id="billSummary" style="display:none">
+                    <div class="summary-row"><span>Items</span><span id="itemCount">0</span></div>
+                    <div class="summary-row total">
+                        <span>Grand Total</span>
+                        <span id="grandTotal">₹0.00</span>
+                    </div>
+                    <button class="btn btn-danger" id="generateBill" style="margin-top:16px">🧾 Generate Bill</button>
+                    <div class="bill-success" id="billSuccess"></div>
+                </div>
+            </div>
+
+            <!-- Add to cart form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>➕ Add Item</h2>
+                </div>
+                <div class="card-body">
+                    <form id="addToCartForm">
+                        <div class="form-group">
+                            <label>Select Item</label>
+                            <select id="itemId" required>
+                                <option value="">— Choose an item —</option>
+                            </select>
+                        </div>
+                        <div class="input-row">
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="number" step="0.01" id="quantity" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Unit</label>
+                                <select id="unit" required>
+                                    <option value="kg">kg</option>
+                                    <option value="g">g</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-purple">Add to Cart</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (isError ? ' error' : '') + ' show';
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        async function loadItems() {
+            const res = await fetch('/get_items');
+            const items = await res.json();
+            const select = document.getElementById('itemId');
+            select.innerHTML = '<option value="">— Choose an item —</option>';
+            items.forEach(item => {
+                select.innerHTML += `<option value="${item.id}">${item.name} (${item.unit})</option>`;
+            });
+        }
+
+        async function loadCart() {
+            const res = await fetch('/get_cart');
+            const cart = await res.json();
+            const cartContent = document.getElementById('cartContent');
+            const billSummary = document.getElementById('billSummary');
+
+            if (!cart.length) {
+                cartContent.innerHTML = `<div class="cart-empty"><span class="icon">🛒</span>Cart is empty. Add items to get started.</div>`;
+                billSummary.style.display = 'none';
+                return;
+            }
+
+            let grandTotal = 0;
+            const rows = cart.map(c => {
+                const itemTotal = parseFloat(c.selling_price) * parseFloat(c.quantity);
+                grandTotal += itemTotal;
+                return `<tr>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${parseFloat(c.quantity).toFixed(2)} ${c.unit}</td>
+                    <td>₹${parseFloat(c.selling_price).toFixed(2)}</td>
+                    <td>₹${itemTotal.toFixed(2)}</td>
+                    <td><button class="btn-remove" onclick="removeFromCart(${c.id})" title="Remove">✕</button></td>
+                </tr>`;
+            }).join('');
+
+            cartContent.innerHTML = `
+                <table>
+                    <thead><tr><th>Item</th><th>Quantity</th><th>Price/unit</th><th>Total</th><th></th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+
+            billSummary.style.display = 'block';
+            document.getElementById('itemCount').textContent = cart.length;
+            document.getElementById('grandTotal').textContent = '₹' + grandTotal.toFixed(2);
+        }
+
+        async function removeFromCart(cartId) {
+            const res = await fetch('/remove_from_cart', {
+                method: 'DELETE', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ cart_id: cartId })
+            });
+            if (res.ok) {
+                loadCart();
+            } else {
+                showToast('❌ Failed to remove item', true);
+            }
+        }
+
+        document.getElementById('addToCartForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                item_id: document.getElementById('itemId').value,
+                quantity: document.getElementById('quantity').value,
+                unit: document.getElementById('unit').value
+            };
+            const res = await fetch('/add_to_cart', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (res.ok) {
+                showToast('✅ Added to cart');
+                document.getElementById('quantity').value = '';
+                loadCart();
+            } else {
+                showToast('❌ ' + result.error, true);
+            }
+        });
+
+        document.getElementById('generateBill').addEventListener('click', async () => {
+            const btn = document.getElementById('generateBill');
+            btn.disabled = true;
+            const res = await fetch('/generate_bill', { method: 'POST' });
+            const result = await res.json();
+            btn.disabled = false;
+            if (res.ok) {
+                const succ = document.getElementById('billSuccess');
+                succ.textContent = '✅ ' + result.message;
+                succ.style.display = 'block';
+                setTimeout(() => { succ.style.display = 'none'; }, 5000);
+                loadCart();
+            } else {
+                showToast('❌ ' + result.error, true);
+            }
+        });
+
+        loadItems(); loadCart();
+    </script>
+</body>
+</html>

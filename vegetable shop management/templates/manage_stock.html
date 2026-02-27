@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VegShop — Manage Stock</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --green: #2d6a4f; --green-light: #52b788; --green-pale: #d8f3dc;
+            --amber: #e76f00; --cream: #fefae0; --brown: #4a3728;
+            --text: #1b1b1b; --muted: #6b6b6b; --white: #ffffff;
+            --card-bg: #fffef7; --border: rgba(45,106,79,0.15);
+            --danger: #e11d48;
+        }
+
+        body { font-family: 'DM Sans', sans-serif; background: var(--cream); min-height: 100vh; }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: radial-gradient(circle at 10% 30%, rgba(82,183,136,0.1) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 70%, rgba(45,106,79,0.07) 0%, transparent 40%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .page-wrapper { max-width: 1100px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--green); font-weight: 500; text-decoration: none;
+            font-size: 14px; margin-bottom: 32px;
+            padding: 8px 16px; border-radius: 100px;
+            background: rgba(45,106,79,0.08);
+            transition: background 0.2s;
+        }
+        .back-link:hover { background: rgba(45,106,79,0.15); }
+
+        .page-header { margin-bottom: 40px; }
+        .page-header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem; font-weight: 900; color: var(--brown);
+        }
+        .page-header p { color: var(--muted); margin-top: 8px; font-size: 15px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+
+        .card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 20px; padding: 28px;
+        }
+
+        .card-title {
+            font-size: 16px; font-weight: 600; color: var(--text);
+            margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+        }
+        .card-title .icon { font-size: 20px; }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        input, select {
+            width: 100%; padding: 11px 14px;
+            border: 1.5px solid var(--border); border-radius: 10px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px;
+            background: var(--white); color: var(--text);
+            outline: none; transition: border-color 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--green-light); }
+
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn {
+            width: 100%; padding: 13px;
+            border: none; border-radius: 10px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+            transition: all 0.2s; margin-top: 8px;
+        }
+        .btn-green { background: var(--green); color: var(--white); }
+        .btn-green:hover { background: #255c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.3); }
+        .btn-amber { background: var(--amber); color: var(--white); }
+        .btn-amber:hover { background: #d06200; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(231,111,0,0.3); }
+
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--green); color: var(--white);
+            padding: 14px 20px; border-radius: 12px;
+            font-size: 14px; font-weight: 500;
+            transform: translateY(80px); opacity: 0;
+            transition: all 0.3s; z-index: 999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .toast.error { background: var(--danger); }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Table */
+        .table-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+        .table-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .table-header h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: rgba(45,106,79,0.04); }
+        th { padding: 14px 20px; text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+        td { padding: 14px 20px; font-size: 14px; color: var(--text); border-top: 1px solid var(--border); }
+        tr:hover td { background: rgba(45,106,79,0.02); }
+
+        .badge {
+            display: inline-block; padding: 3px 10px; border-radius: 100px;
+            font-size: 12px; font-weight: 600;
+        }
+        .badge-green { background: var(--green-pale); color: var(--green); }
+        .badge-amber { background: #fff3e0; color: var(--amber); }
+        .badge-red { background: #ffeef1; color: var(--danger); }
+
+        .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 15px; }
+
+        @media (max-width: 680px) { .grid-2 { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <a href="/" class="back-link">← Back to Dashboard</a>
+
+        <div class="page-header">
+            <h1>🥬 Manage Stock</h1>
+            <p>Add new items or update existing inventory quantities</p>
+        </div>
+
+        <div class="grid-2">
+            <!-- Add new item -->
+            <div class="card">
+                <div class="card-title"><span class="icon">➕</span> Add New Item</div>
+                <form id="addItemForm">
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <input type="text" id="name" placeholder="e.g. Tomatoes" required>
+                    </div>
+                    <div class="input-row">
+                        <div class="form-group">
+                            <label>Unit</label>
+                            <select id="unit" required>
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Initial Quantity</label>
+                            <input type="number" step="0.01" id="quantity" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <div class="form-group">
+                            <label>Cost Price (₹)</label>
+                            <input type="number" step="0.01" id="originalPrice" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Selling Price (₹)</label>
+                            <input type="number" step="0.01" id="sellingPrice" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-green">Add Item to Inventory</button>
+                </form>
+            </div>
+
+            <!-- Update stock -->
+            <div class="card">
+                <div class="card-title"><span class="icon">📦</span> Restock Item</div>
+                <form id="updateStockForm">
+                    <div class="form-group">
+                        <label>Select Item</label>
+                        <select id="itemId" required>
+                            <option value="">— Choose an item —</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity to Add</label>
+                        <input type="number" step="0.01" id="quantityUpdate" placeholder="Enter quantity to add" required>
+                    </div>
+                    <button type="submit" class="btn btn-amber">Update Stock</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stock table -->
+        <div class="table-card">
+            <div class="table-header">
+                <h2>📋 Current Inventory</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Unit</th>
+                        <th>In Stock</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="stockTableBody">
+                    <tr><td colspan="4" class="empty">Loading inventory...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (isError ? ' error' : '') + ' show';
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        async function loadItems() {
+            const res = await fetch('/get_items');
+            const items = await res.json();
+            const select = document.getElementById('itemId');
+            select.innerHTML = '<option value="">— Choose an item —</option>';
+            items.forEach(item => {
+                select.innerHTML += `<option value="${item.id}">${item.name} (${item.unit})</option>`;
+            });
+        }
+
+        async function loadStock() {
+            const res = await fetch('/get_stock');
+            const stock = await res.json();
+            const tbody = document.getElementById('stockTableBody');
+            if (!stock.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty">No items in inventory yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = stock.map(s => {
+                const qty = parseFloat(s.quantity);
+                let badge = qty > 10
+                    ? `<span class="badge badge-green">Good</span>`
+                    : qty > 2
+                    ? `<span class="badge badge-amber">Low</span>`
+                    : `<span class="badge badge-red">Critical</span>`;
+                return `<tr>
+                    <td><strong>${s.name}</strong></td>
+                    <td>${s.unit}</td>
+                    <td>${qty.toFixed(2)}</td>
+                    <td>${badge}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        document.getElementById('addItemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('name').value,
+                unit: document.getElementById('unit').value,
+                original_price: document.getElementById('originalPrice').value,
+                selling_price: document.getElementById('sellingPrice').value,
+                quantity: document.getElementById('quantity').value
+            };
+            const res = await fetch('/add_item', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (res.ok) {
+                showToast('✅ ' + result.message);
+                e.target.reset();
+                loadItems(); loadStock();
+            } else {
+                showToast('❌ ' + result.error, true);
+            }
+        });
+
+        document.getElementById('updateStockForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                item_id: document.getElementById('itemId').value,
+                quantity: document.getElementById('quantityUpdate').value
+            };
+            const res = await fetch('/update_stock', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (res.ok) {
+                showToast('✅ ' + result.message);
+                e.target.reset();
+                loadStock();
+            } else {
+                showToast('❌ ' + result.error, true);
+            }
+        });
+
+        loadItems(); loadStock();
+    </script>
+</body>
+</html>
