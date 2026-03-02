@@ -30,7 +30,7 @@ A full-stack web application built to digitize and streamline day-to-day operati
 ##  Project Structure
 
 ```
-shop_management_new/
+vegetable shop management/
 │
 ├── app.py                  # Flask backend — all API routes
 ├── sales.csv               # Sample data (optional)
