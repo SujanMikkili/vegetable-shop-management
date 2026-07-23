@@ -1,9 +1,8 @@
 """
 Vegetable Shop Management System — FastAPI backend.
 
-This is a drop-in replacement for the original Flask app.py.
-Every route, method, and JSON shape is kept identical so the
-existing frontend (templates/*.html) works completely unchanged.
+Handles inventory, stock, cart/billing, and bill history for a
+single-owner vegetable shop, serving the templates/*.html frontend.
 """
 
 import json
@@ -163,6 +162,29 @@ def add_to_cart(data: CartAdd):
         elif input_unit == "kg" and item_unit == "g":
             quantity *= 1000
 
+        # Stock check: make sure there's enough available, counting anything
+        # already sitting in the cart for this item (in this same unit).
+        stock_row = execute_query(
+            "SELECT quantity FROM stock WHERE item_id = %s", (item_id,), fetch=True
+        )
+        available = float(stock_row[0]["quantity"]) if stock_row else 0.0
+
+        already_in_cart_row = execute_query(
+            "SELECT COALESCE(SUM(quantity), 0) as total FROM cart WHERE item_id = %s AND session_id = %s",
+            (item_id, SESSION_ID),
+            fetch=True,
+        )
+        already_in_cart = float(already_in_cart_row[0]["total"])
+
+        if already_in_cart + quantity > available:
+            remaining = max(available - already_in_cart, 0)
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": f"Insufficient stock. Only {remaining}{item_unit} available."
+                },
+            )
+
         execute_query(
             "INSERT INTO cart (item_id, quantity, session_id) VALUES (%s, %s, %s)",
             (item_id, quantity, SESSION_ID),
@@ -214,6 +236,30 @@ def generate_bill():
             item["selling_price"] = _to_float(item["selling_price"])
             item["quantity"] = _to_float(item["quantity"])
 
+        # Cart can have multiple rows for the same item_id (added at
+        # different times), so combine quantities per item before checking
+        # stock — otherwise two 3kg rows against 5kg of stock would each
+        # individually "pass" a naive per-row check.
+        needed_by_item = {}
+        for item in cart_items:
+            needed_by_item[item["item_id"]] = needed_by_item.get(item["item_id"], 0) + item["quantity"]
+
+        # --- Validation pass: check ALL items before writing anything ---
+        current_stock_by_item = {}
+        for item_id, needed_qty in needed_by_item.items():
+            stock_row = execute_query(
+                "SELECT quantity FROM stock WHERE item_id = %s", (item_id,), fetch=True
+            )
+            available = float(stock_row[0]["quantity"]) if stock_row else 0.0
+            current_stock_by_item[item_id] = available
+            if available < needed_qty:
+                item_name = next(i["name"] for i in cart_items if i["item_id"] == item_id)
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": f"Insufficient stock for {item_name}"},
+                )
+
+        # --- Everything checks out: now write the bill and deduct stock ---
         total = sum(item["selling_price"] * item["quantity"] for item in cart_items)
         items_sold = json.dumps(cart_items)
 
@@ -222,21 +268,12 @@ def generate_bill():
             (total, items_sold),
         )
 
-        # deduct from stock
-        for item in cart_items:
-            current_stock = execute_query(
-                "SELECT quantity FROM stock WHERE item_id = %s", (item["item_id"],), fetch=True
+        for item_id, needed_qty in needed_by_item.items():
+            new_quantity = current_stock_by_item[item_id] - needed_qty
+            execute_query(
+                "UPDATE stock SET quantity = %s WHERE item_id = %s",
+                (new_quantity, item_id),
             )
-            if current_stock and float(current_stock[0]["quantity"]) >= item["quantity"]:
-                new_quantity = float(current_stock[0]["quantity"]) - item["quantity"]
-                execute_query(
-                    "UPDATE stock SET quantity = %s WHERE item_id = %s",
-                    (new_quantity, item["item_id"]),
-                )
-            else:
-                return JSONResponse(
-                    status_code=400, content={"error": f"Insufficient stock for {item['name']}"}
-                )
 
         execute_query("DELETE FROM cart WHERE session_id = %s", (SESSION_ID,))
         return {"message": f"Bill generated successfully! Total: \u20b9{total:.2f}", "total": total}
