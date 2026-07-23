@@ -1,0 +1,29 @@
+CREATE DATABASE veg_shop;
+USE veg_shop;
+CREATE TABLE items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    unit VARCHAR(10) NOT NULL,
+    original_price DECIMAL(10,2) NOT NULL,
+    selling_price DECIMAL(10,2) NOT NULL
+);
+CREATE TABLE stock (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT NOT NULL,
+    quantity DECIMAL(10,3) NOT NULL DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES items(id)
+);
+CREATE TABLE cart (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT NOT NULL,
+    quantity DECIMAL(10,3) NOT NULL,
+    session_id VARCHAR(100) NOT NULL,
+    FOREIGN KEY (item_id) REFERENCES items(id)
+);
+CREATE TABLE bills (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10,2) NOT NULL,
+    items_sold TEXT NOT NULL
+);

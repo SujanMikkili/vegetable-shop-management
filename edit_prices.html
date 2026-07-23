@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VegShop — Edit Prices</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --green: #2d6a4f; --green-light: #52b788; --green-pale: #d8f3dc;
+            --amber: #e76f00; --cream: #fefae0; --brown: #4a3728;
+            --text: #1b1b1b; --muted: #6b6b6b; --white: #ffffff;
+            --card-bg: #fffef7; --border: rgba(45,106,79,0.15);
+            --danger: #e11d48;
+        }
+
+        body { font-family: 'DM Sans', sans-serif; background: var(--cream); min-height: 100vh; }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: radial-gradient(circle at 80% 20%, rgba(231,111,0,0.08) 0%, transparent 40%),
+                        radial-gradient(circle at 20% 80%, rgba(45,106,79,0.07) 0%, transparent 40%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .page-wrapper { max-width: 960px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--green); font-weight: 500; text-decoration: none; font-size: 14px;
+            margin-bottom: 32px; padding: 8px 16px; border-radius: 100px;
+            background: rgba(45,106,79,0.08); transition: background 0.2s;
+        }
+        .back-link:hover { background: rgba(45,106,79,0.15); }
+
+        .page-header { margin-bottom: 32px; }
+        .page-header h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 900; color: var(--brown); }
+        .page-header p { color: var(--muted); margin-top: 8px; font-size: 15px; }
+
+        .table-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+        .table-header { padding: 20px 28px; border-bottom: 1px solid var(--border); }
+        .table-header h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: rgba(45,106,79,0.04); }
+        th { padding: 14px 20px; text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+        td { padding: 12px 20px; font-size: 14px; color: var(--text); border-top: 1px solid var(--border); }
+        tr:hover td { background: rgba(45,106,79,0.02); }
+
+        .item-name { font-weight: 600; }
+        .unit-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 100px;
+            background: var(--green-pale); color: var(--green);
+            font-size: 12px; font-weight: 600;
+        }
+
+        .price-input {
+            width: 110px; padding: 8px 12px;
+            border: 1.5px solid var(--border); border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px;
+            background: var(--white); color: var(--text);
+            outline: none; transition: border-color 0.2s;
+        }
+        .price-input:focus { border-color: var(--green-light); }
+
+        .margin-cell {
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .margin-pos { color: var(--green); }
+        .margin-neg { color: var(--danger); }
+
+        .btn-update {
+            padding: 8px 18px;
+            border: none; border-radius: 8px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+            background: var(--amber); color: var(--white);
+            transition: all 0.2s;
+        }
+        .btn-update:hover { background: #d06200; transform: translateY(-1px); }
+        .btn-update.saved { background: var(--green); }
+
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--green); color: var(--white);
+            padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: 500;
+            transform: translateY(80px); opacity: 0;
+            transition: all 0.3s; z-index: 999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .toast.error { background: var(--danger); }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 15px; }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <a href="/" class="back-link">← Back to Dashboard</a>
+
+        <div class="page-header">
+            <h1>💰 Edit Prices</h1>
+            <p>Update cost and selling prices for all inventory items</p>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h2>All Items</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Unit</th>
+                        <th>Cost Price (₹)</th>
+                        <th>Selling Price (₹)</th>
+                        <th>Margin</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="pricesTableBody">
+                    <tr><td colspan="6" class="empty">Loading prices...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (isError ? ' error' : '') + ' show';
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        function calcMargin(orig, sell) {
+            const margin = ((sell - orig) / orig * 100);
+            const cls = margin >= 0 ? 'margin-pos' : 'margin-neg';
+            return `<span class="margin-cell ${cls}">${margin >= 0 ? '+' : ''}${margin.toFixed(1)}%</span>`;
+        }
+
+        async function loadPrices() {
+            const res = await fetch('/get_items');
+            const items = await res.json();
+            const tbody = document.getElementById('pricesTableBody');
+            if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty">No items found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(item => `
+                <tr id="row-${item.id}">
+                    <td class="item-name">${item.name}</td>
+                    <td><span class="unit-badge">${item.unit}</span></td>
+                    <td><input class="price-input" type="number" step="0.01" value="${item.original_price.toFixed(2)}" id="orig-${item.id}" oninput="updateMargin(${item.id})"></td>
+                    <td><input class="price-input" type="number" step="0.01" value="${item.selling_price.toFixed(2)}" id="sell-${item.id}" oninput="updateMargin(${item.id})"></td>
+                    <td id="margin-${item.id}">${calcMargin(item.original_price, item.selling_price)}</td>
+                    <td><button class="btn-update" onclick="updatePrice(${item.id}, this)">Update</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateMargin(id) {
+            const orig = parseFloat(document.getElementById(`orig-${id}`).value) || 0;
+            const sell = parseFloat(document.getElementById(`sell-${id}`).value) || 0;
+            document.getElementById(`margin-${id}`).innerHTML = calcMargin(orig, sell);
+        }
+
+        async function updatePrice(id, btn) {
+            const orig = document.getElementById(`orig-${id}`).value;
+            const sell = document.getElementById(`sell-${id}`).value;
+            const res = await fetch('/edit_prices', {
+                method: 'PUT', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id, original_price: orig, selling_price: sell })
+            });
+            const result = await res.json();
+            if (res.ok) {
+                btn.textContent = '✓ Saved';
+                btn.classList.add('saved');
+                setTimeout(() => { btn.textContent = 'Update'; btn.classList.remove('saved'); }, 2000);
+                showToast('✅ Price updated successfully');
+            } else {
+                showToast('❌ ' + result.error, true);
+            }
+        }
+
+        loadPrices();
+    </script>
+</body>
+</html>

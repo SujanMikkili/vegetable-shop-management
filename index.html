@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VegShop — Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --green: #2d6a4f;
+            --green-light: #52b788;
+            --green-pale: #d8f3dc;
+            --amber: #e76f00;
+            --amber-light: #fca311;
+            --cream: #fefae0;
+            --brown: #4a3728;
+            --text: #1b1b1b;
+            --muted: #6b6b6b;
+            --white: #ffffff;
+            --card-bg: #fffef7;
+            --border: rgba(45,106,79,0.15);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--cream);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 15% 20%, rgba(82,183,136,0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 75%, rgba(231,111,0,0.08) 0%, transparent 35%),
+                radial-gradient(circle at 50% 50%, rgba(45,106,79,0.05) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            padding: 48px 0 0;
+            text-align: center;
+        }
+
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--green);
+            color: var(--white);
+            padding: 8px 20px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        .logo-badge .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--green-light);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            color: var(--brown);
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        h1 span { color: var(--green); }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 17px;
+            font-weight: 300;
+            margin-bottom: 64px;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 56px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(45,106,79,0.1);
+        }
+
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--green);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Nav cards */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 64px;
+        }
+
+        .nav-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 32px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            transition: all 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card::before {
+            content: '';
+            position: absolute;
+            bottom: -20px; right: -20px;
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            opacity: 0.06;
+            transition: transform 0.3s;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 48px rgba(0,0,0,0.1);
+            border-color: transparent;
+        }
+
+        .nav-card:hover::before { transform: scale(2.5); }
+
+        .nav-card.stock { border-left: 4px solid var(--green); }
+        .nav-card.stock::before { background: var(--green); }
+        .nav-card.stock:hover { background: linear-gradient(135deg, #f0fbf4, var(--card-bg)); }
+
+        .nav-card.prices { border-left: 4px solid var(--amber); }
+        .nav-card.prices::before { background: var(--amber); }
+        .nav-card.prices:hover { background: linear-gradient(135deg, #fff8f0, var(--card-bg)); }
+
+        .nav-card.billing { border-left: 4px solid #6366f1; }
+        .nav-card.billing::before { background: #6366f1; }
+        .nav-card.billing:hover { background: linear-gradient(135deg, #f5f5ff, var(--card-bg)); }
+
+        .nav-card.bills { border-left: 4px solid #e11d48; }
+        .nav-card.bills::before { background: #e11d48; }
+        .nav-card.bills:hover { background: linear-gradient(135deg, #fff5f7, var(--card-bg)); }
+
+        .nav-icon {
+            font-size: 2.4rem;
+            flex-shrink: 0;
+        }
+
+        .nav-text h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .nav-text p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .nav-arrow {
+            margin-left: auto;
+            font-size: 20px;
+            color: var(--muted);
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+
+        .nav-card:hover .nav-arrow { transform: translateX(4px); }
+
+        footer {
+            text-align: center;
+            padding: 32px 0;
+            color: var(--muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 640px) {
+            .nav-grid { grid-template-columns: 1fr; }
+            .stats-bar { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-badge">
+                <span class="dot"></span>
+                Shop Management
+            </div>
+            <h1>Vegetable <span>Shop</span></h1>
+            <p class="subtitle">Your complete shop management system</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="totalItems">—</div>
+                <div class="stat-label">Items in Catalog</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalBills">—</div>
+                <div class="stat-label">Bills Generated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalRevenue">—</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+        </div>
+
+        <div class="nav-grid">
+            <a href="/manage_stock" class="nav-card stock">
+                <div class="nav-icon">🥬</div>
+                <div class="nav-text">
+                    <h3>Manage Stock</h3>
+                    <p>Add items, update quantities & track inventory levels</p>
+                </div>
+                <div class="nav-arrow">→</div>
+            </a>
+            <a href="/edit_prices" class="nav-card prices">
+                <div class="nav-icon">💰</div>
+                <div class="nav-text">
+                    <h3>Edit Prices</h3>
+                    <p>Update original cost & selling prices for all items</p>
+                </div>
+                <div class="nav-arrow">→</div>
+            </a>
+            <a href="/cart_billing" class="nav-card billing">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-text">
+                    <h3>Cart & Billing</h3>
+                    <p>Add items to cart, calculate totals & generate bills</p>
+                </div>
+                <div class="nav-arrow">→</div>
+            </a>
+            <a href="/view_bills" class="nav-card bills">
+                <div class="nav-icon">🧾</div>
+                <div class="nav-text">
+                    <h3>View Bills</h3>
+                    <p>Browse bill history with detailed item breakdowns</p>
+                </div>
+                <div class="nav-arrow">→</div>
+            </a>
+        </div>
+    </div>
+    <footer>VegShop Management System &copy; 2025</footer>
+
+    <script>
+        async function loadStats() {
+            try {
+                const [itemsRes, billsRes] = await Promise.all([
+                    fetch('/get_items'), fetch('/get_bills')
+                ]);
+                const items = await itemsRes.json();
+                const bills = await billsRes.json();
+                document.getElementById('totalItems').textContent = Array.isArray(items) ? items.length : '—';
+                document.getElementById('totalBills').textContent = Array.isArray(bills) ? bills.length : '—';
+                if (Array.isArray(bills) && bills.length) {
+                    const rev = bills.reduce((s, b) => s + parseFloat(b.total_amount || 0), 0);
+                    document.getElementById('totalRevenue').textContent = '₹' + rev.toFixed(0);
+                }
+            } catch(e) { console.log('Stats load failed', e); }
+        }
+        loadStats();
+    </script>
+</body>
+</html>
